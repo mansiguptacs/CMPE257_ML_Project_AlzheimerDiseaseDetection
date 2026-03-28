@@ -1,0 +1,196 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+def read_data():
+    DATA_PATH = "./data/oasis_cross-sectional-5708aa0a98d82080.xlsx"
+
+    data = pd.read_excel(DATA_PATH)
+
+    print("Raw data shape:", data.shape)
+    print("Columns:", data.columns.tolist())
+    print(data.head())
+    return data
+
+#Scale features
+def scale_features(X_train, X_test):
+    X_train_scaled = self.scaler.fit_transform(X_train)
+    X_test_scaled = self.scaler.transform(X_test)
+    
+    return X_train_scaled, X_test_scaled
+
+#Handling missing values
+#Removing columns with all null values, same value and ID
+#Removing data where target is null
+def handle_missing_values( data):
+    data['CDR'] = data['CDR'].fillna(0)
+    data['MMSE'] = data['MMSE'].fillna(data['MMSE'].mean())
+    data['SES'] = data['SES'].fillna(data['SES'].mean())
+    data['Educ'] = data['Educ'].fillna(data['Educ'].mean())
+    data['Delay'] = data['Delay'].fillna(data['Delay'].mean())
+
+    #Removing unrelevant records with missing MRI Images means ID ending with MRI2
+    data = data[~data['ID'].str.endswith('MR2')]
+    return data
+
+def scale_features(X_train, X_test):
+    print("Started Scaling features")
+    scaler = StandardScaler()
+
+    num_cols = ['Age', 'Educ', 'SES', 'MMSE', 'eTIV', 'nWBV', 'ASF']
+    
+    X_train_scaled = X_train.copy()
+    X_test_scaled = X_test.copy()
+    
+    X_train_scaled[num_cols] = scaler.fit_transform(X_train[num_cols])
+    X_test_scaled[num_cols] = scaler.transform(X_test[num_cols])
+    print("Finished Scaling features")
+    return X_train_scaled, X_test_scaled
+
+def encode_features(data):
+    print("Started Encoding features")
+    if 'M/F' in data.columns:
+        data['Gender'] = data['M/F'].map({'M': 0, 'F': 1})
+        data.drop(columns=['M/F'], inplace=True)
+    if 'Hand' in data.columns:
+        data['Hand'] = data['Hand'].map({'R': 0, 'L': 1})
+    print(data['Gender'].head())
+    #print(data['Hand'].head())
+    print("Finished Encoding features")
+    return data
+
+def encode_target(data):
+    print("Started Encoding target")
+    #id CDR > 0 , then 1 else 0
+    data['CDR'] = data['CDR'].apply(lambda x: 1 if x > 0 else 0)
+    print("Finished Encoding target")
+    return data
+
+def save_data(X_train_scaled, X_test_scaled, y_train, y_test):
+    print("X_train_scaled:", X_train_scaled.head())
+    print("X_test_scaled:", X_test_scaled.head())
+    print("y_train:", y_train.head())
+    print("y_test:", y_test.head())
+    X_train_scaled.to_csv("./data/X_train.csv", index=False)
+    X_test_scaled.to_csv("./data/X_test.csv", index=False)
+    y_train.to_csv("./data/y_train.csv", index=False)
+    y_test.to_csv("./data/y_test.csv", index=False)
+
+def perform_feature_selection(data):
+
+    print("Dropping columns ID, Delay and Hand")
+    new_data = data.drop(columns=['ID','Delay','Hand'])
+    print("Shape of data after feature selection:", new_data.shape)
+    return new_data
+
+def perform_test_train_split(X, y):
+    X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=y
+            )
+    return X_train, X_test, y_train, y_test
+
+def correlation_matrix(X, y):
+    print("Correlation matrix for cleaned data")
+    corr = X.corr(numeric_only=True)
+    sns.heatmap(corr, annot=True, cmap='coolwarm')
+    plt.show()
+
+def visualise_target_distribution(target):
+    plt.figure(figsize=(5,3))
+    #add percentage in the graph
+    sns.countplot(x=target, palette=['green', 'red'])
+    plt.title("Binary Target Distribution")
+    plt.xlabel("Target")
+    plt.ylabel("Count")
+    plt.xticks(ticks=[0, 1], labels=['Healthy(0)', 'Dementia(1)'])
+    plt.show()
+
+
+def visualise_feature_distribution(df):
+    features = ['Age', 'Educ', 'SES', 'MMSE', 'eTIV', 'nWBV', 'ASF']
+    healthy = df[df['CDR'] == 0]
+    dementia = df[df['CDR'] == 1]
+
+    # Create subplots grid
+    fig, axes = plt.subplots(2, 4, figsize=(10, 6))
+    axes = axes.flatten()
+
+    for i, col in enumerate(features):
+        ax = axes[i]
+
+        # Healthy (green)
+        sns.histplot(healthy[col], bins=20, color='green',
+                    alpha=0.6, label='Healthy', ax=ax)
+
+        # Dementia (red)
+        sns.histplot(dementia[col], bins=20, color='red',
+                    alpha=0.6, label='Dementia', ax=ax)
+
+        ax.set_title(col)
+        ax.legend()
+
+    # Remove empty subplot if needed
+    if len(features) < len(axes):
+        fig.delaxes(axes[-1])
+
+    plt.suptitle('Feature Distributions: Healthy vs Dementia')
+    plt.tight_layout()
+    plt.show()
+
+def preprocess_oasis1(data=[]):
+    if data.empty:
+        print("1. Reading data from CSV file")
+        data = read_data()
+    print("Data loading completed")
+    print("2. Handling missing values")
+    new_data = handle_missing_values(data)
+    print(new_data.describe())
+    print(new_data.info())
+
+    print("Shape of data after handling missing values:", new_data.shape)
+    print("3. Dropping columns ID, Delay and Hand")
+    new_data = perform_feature_selection(new_data)
+
+    #Encode target
+    print("4. Encoding \n Encoding target")
+    new_data = encode_target(new_data)
+
+    #Encode features
+    print("Encoding features")
+    new_data = encode_features(new_data)
+
+    #Scale features
+    print("5. Scaling features")
+    feature_cols = ['Gender', 'Age', 'Educ', 'SES', 'MMSE', 'eTIV', 'nWBV', 'ASF']
+    target_col = 'CDR'
+
+    print("Class distribution for target(CDR): ", new_data[target_col].value_counts().to_dict())
+
+    #Split data
+    print("6. Splitting data into training and testing sets")
+    X = new_data[feature_cols]
+    y = new_data[target_col]
+
+    X_train, X_test, y_train, y_test = perform_test_train_split(X, y)
+    print("Scaling features")
+    X_train_scaled, X_test_scaled = scale_features(X_train, X_test)
+    print("7. Saving data for future use")
+    save_data(X_train_scaled, X_test_scaled, y_train, y_test)
+
+    print("Class distribution (train): ", y_train.value_counts().to_dict())
+    print("Class distribution (test): ", y_test.value_counts().to_dict())
+
+    return new_data
+
+if __name__ == '__main__':
+    print("1. Reading data from CSV file")
+    data = read_data()
+    new_data = preprocess_oasis1(data)
+    print("8. Correlation matrix")
+    correlation_matrix(new_data, new_data['CDR'])
+    print("9. Visualising target distribution")
+    visualise_target_distribution(new_data['CDR'])
+    print("10. Visualising feature distribution")
+    visualise_feature_distribution(new_data)
