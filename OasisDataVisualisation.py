@@ -2,6 +2,7 @@ import pandas as pd
 from preprocessing import preprocess_oasis1
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 DATA_PATH = "./data/oasis_cross-sectional-5708aa0a98d82080.xlsx"
 
@@ -44,10 +45,31 @@ def feature_distribution(df):
     plt.tight_layout()
     plt.show()
 
-def correlation_matrix(X, y):
+def correlation_matrix(df):
+    features = ['Age', 'Educ', 'SES', 'MMSE', 'eTIV', 'nWBV', 'ASF','CDR']
     print("Correlation matrix for cleaned data")
-    corr = X.corr(numeric_only=True)
-    sns.heatmap(corr, annot=True, cmap='coolwarm')
+    corr = df[features].corr()
+
+    # Create mask for upper triangle
+    mask = np.triu(np.ones_like(corr, dtype=bool))
+
+    # Plot
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(
+    corr,
+    mask=mask,
+    annot=True,          # show correlation values
+    fmt=".2f",           # 2 decimal places
+    cmap="coolwarm",     # blue to red
+    vmin=-1, vmax=1,     # correlation scale
+    square=True,
+    linewidths=0.5,
+    cbar_kws={"shrink": 0.8})
+
+    plt.title("Feature Correlation Matrix", fontsize=14, fontweight='bold')
+    plt.xticks(rotation=0)
+    plt.yticks(rotation=90)
+    plt.tight_layout()
     plt.show()
 
 def target_distribution(target):
@@ -70,7 +92,7 @@ elif choice == "2":
     target_distribution(data['CDR'])
 elif choice == "3":
     print("Visualising Correlation matrix of data")
-    correlation_matrix(data, data['CDR'])
+    correlation_matrix(data)
     
 
     

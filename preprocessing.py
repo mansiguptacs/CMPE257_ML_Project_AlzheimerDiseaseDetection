@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 
 def read_data():
@@ -40,7 +40,6 @@ def scale_features(X_train, X_test):
     scaler = StandardScaler()
 
     num_cols = ['Age', 'Educ', 'SES', 'MMSE', 'eTIV', 'nWBV', 'ASF']
-    
     X_train_scaled = X_train.copy()
     X_test_scaled = X_test.copy()
     
@@ -51,11 +50,12 @@ def scale_features(X_train, X_test):
 
 def encode_features(data):
     print("Started Encoding features")
+    le = LabelEncoder()
     if 'M/F' in data.columns:
-        data['Gender'] = data['M/F'].map({'M': 0, 'F': 1})
+        data['Gender'] = le.fit_transform(data['M/F'])
         data.drop(columns=['M/F'], inplace=True)
     if 'Hand' in data.columns:
-        data['Hand'] = data['Hand'].map({'R': 0, 'L': 1})
+        data['Hand'] = le.fit_transform(data['Hand'])
     print(data['Gender'].head())
     #print(data['Hand'].head())
     print("Finished Encoding features")
@@ -107,7 +107,6 @@ def visualise_target_distribution(target):
     plt.xticks(ticks=[0, 1], labels=['Healthy(0)', 'Dementia(1)'])
     plt.show()
 
-
 def visualise_feature_distribution(df):
     features = ['Age', 'Educ', 'SES', 'MMSE', 'eTIV', 'nWBV', 'ASF']
     healthy = df[df['CDR'] == 0]
@@ -116,7 +115,6 @@ def visualise_feature_distribution(df):
     # Create subplots grid
     fig, axes = plt.subplots(2, 4, figsize=(10, 6))
     axes = axes.flatten()
-
     for i, col in enumerate(features):
         ax = axes[i]
 
@@ -139,6 +137,23 @@ def visualise_feature_distribution(df):
     plt.tight_layout()
     plt.show()
 
+def split_and_save_data(data):
+    
+    #Split data
+    print("5. Splitting data into training and testing sets")
+    X = new_data[feature_cols]
+    y = new_data[target_col]
+    X_train, X_test, y_train, y_test = perform_test_train_split(X, y)
+
+    #Scale features
+    print("6. Scaling features")
+    X_train_scaled, X_test_scaled = scale_features(X_train, X_test)
+    print("7. Saving data for future use")
+    save_data(X_train_scaled, X_test_scaled, y_train, y_test)
+
+    print("Class distribution (train): ", y_train.value_counts().to_dict())
+    print("Class distribution (test): ", y_test.value_counts().to_dict())
+
 def preprocess_oasis1(data=[]):
     if data.empty:
         print("1. Reading data from CSV file")
@@ -160,34 +175,17 @@ def preprocess_oasis1(data=[]):
     #Encode features
     print("Encoding features")
     new_data = encode_features(new_data)
-
-    #Scale features
-    print("5. Scaling features")
     feature_cols = ['Gender', 'Age', 'Educ', 'SES', 'MMSE', 'eTIV', 'nWBV', 'ASF']
     target_col = 'CDR'
 
     print("Class distribution for target(CDR): ", new_data[target_col].value_counts().to_dict())
-
-    #Split data
-    print("6. Splitting data into training and testing sets")
-    X = new_data[feature_cols]
-    y = new_data[target_col]
-
-    X_train, X_test, y_train, y_test = perform_test_train_split(X, y)
-    print("Scaling features")
-    X_train_scaled, X_test_scaled = scale_features(X_train, X_test)
-    print("7. Saving data for future use")
-    save_data(X_train_scaled, X_test_scaled, y_train, y_test)
-
-    print("Class distribution (train): ", y_train.value_counts().to_dict())
-    print("Class distribution (test): ", y_test.value_counts().to_dict())
-
     return new_data
 
 if __name__ == '__main__':
     print("1. Reading data from CSV file")
     data = read_data()
     new_data = preprocess_oasis1(data)
+    split_and_save_data(new_data)
     print("8. Correlation matrix")
     correlation_matrix(new_data, new_data['CDR'])
     print("9. Visualising target distribution")
