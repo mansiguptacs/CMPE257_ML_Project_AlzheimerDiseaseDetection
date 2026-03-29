@@ -23,18 +23,18 @@
         "ASF",
         "Delay"
     ],
-    "train_samples": 348,
-    "test_samples": 88,
+    "train_samples": 332,
+    "test_samples": 84,
     "num_features": 9,
     "test_size": 0.2,
     "random_state": 42,
     "subject_level_split": false,
     "class_distribution_train": {
-        "0": 268,
+        "0": 252,
         "1": 80
     },
     "class_distribution_test": {
-        "0": 68,
+        "0": 64,
         "1": 20
     }
 }
