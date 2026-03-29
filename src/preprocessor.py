@@ -51,7 +51,8 @@ class OASISPreprocessor:
             if df_clean[col].isnull().sum() > 0:
                 df_clean[col] = df_clean[col].fillna(df_clean[col].mode()[0] if not df_clean[col].mode().empty else 'Unknown')
         
-        print("Missing values after handling:", df_clean.isnull().sum())
+        #remove tuple that ends with MR2 in ID
+        df_clean = df_clean[~df_clean['ID'].str.endswith('MR2')]
         return df_clean
     
     def encode_categorical(self, data, categorical_cols):
