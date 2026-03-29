@@ -1,0 +1,40 @@
+{
+    "dataset": "OASIS-1 (Cross-Sectional)",
+    "target_column": "CDR",
+    "feature_columns": [
+        "M/F",
+        "Age",
+        "Educ",
+        "SES",
+        "MMSE",
+        "eTIV",
+        "nWBV",
+        "ASF",
+        "Delay"
+    ],
+    "final_features": [
+        "M/F",
+        "Age",
+        "Educ",
+        "SES",
+        "MMSE",
+        "eTIV",
+        "nWBV",
+        "ASF",
+        "Delay"
+    ],
+    "train_samples": 348,
+    "test_samples": 88,
+    "num_features": 9,
+    "test_size": 0.2,
+    "random_state": 42,
+    "subject_level_split": false,
+    "class_distribution_train": {
+        "0": 268,
+        "1": 80
+    },
+    "class_distribution_test": {
+        "0": 68,
+        "1": 20
+    }
+}

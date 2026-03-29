@@ -12,7 +12,7 @@ from src.utils import save_json
 @click.command()
 @click.option('--input',
               type=click.Path(exists=True),
-              default='oasis_cross-sectional-5708aa0a98d82080.xlsx',
+              default='data/oasis_cross-sectional-5708aa0a98d82080.xlsx',
               help='Path to OASIS-1 cross-sectional dataset')
 @click.option('--output-dir',
               type=click.Path(),
