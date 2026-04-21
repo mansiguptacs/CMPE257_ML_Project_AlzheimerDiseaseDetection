@@ -12,7 +12,7 @@ OUT = Path("docs/figures")
 OUT.mkdir(parents=True, exist_ok=True)
 
 # ── Load raw data ──────────────────────────────────────────────────────
-df = pd.read_excel("oasis_cross-sectional-5708aa0a98d82080.xlsx")
+df = pd.read_excel("data/oasis_cross-sectional-5708aa0a98d82080.xlsx")
 print(f"Loaded {df.shape[0]} samples, {df.shape[1]} columns")
 print(f"Columns: {list(df.columns)}")
 

@@ -6,3 +6,7 @@ scikit-learn
 openpyxl
 xgboost
 click
+joblib
+nibabel
+nilearn
+tqdm
