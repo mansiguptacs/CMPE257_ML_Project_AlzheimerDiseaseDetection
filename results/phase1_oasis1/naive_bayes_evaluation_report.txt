@@ -1,0 +1,24 @@
+======================================================================
+NAIVE_BAYES - Detailed Evaluation Report
+======================================================================
+
+PERFORMANCE METRICS
+----------------------------------------------------------------------
+Accuracy:  0.8690
+Precision: 0.6552
+Recall:    0.9500
+F1 Score:  0.7755
+ROC AUC:   0.9539
+
+CONFUSION MATRIX
+----------------------------------------------------------------------
+True Negatives:  54
+False Positives: 10
+False Negatives: 1
+True Positives:  19
+
+FEATURE IMPORTANCE
+----------------------------------------------------------------------
+naive_bayes does not provide feature importance metrics.
+
+======================================================================
