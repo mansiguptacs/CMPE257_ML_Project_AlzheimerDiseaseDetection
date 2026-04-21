@@ -1,0 +1,92 @@
+======================================================================
+FEATURE ABLATION STUDY - CLINICAL INTERPRETATION
+======================================================================
+
+OBJECTIVE:
+Demonstrate that current models over-rely on cognitive test (MMSE)
+and global brain metrics, lacking regional specificity needed for
+clinically reliable Alzheimer's diagnosis.
+
+======================================================================
+RESULTS SUMMARY
+======================================================================
+
+Without MMSE:
+  Average Accuracy: 0.8095
+  Drop from Baseline: 0.0595 (6.8%)
+
+Without Global Brain Metrics:
+  Average Accuracy: 0.8294
+  Drop from Baseline: 0.0397 (4.6%)
+
+Without MMSE + Global:
+  Average Accuracy: 0.7659
+  Drop from Baseline: 0.1032 (11.9%)
+  ⚠️  WARNING: >10% drop without global brain metrics
+      Models rely on non-specific atrophy measures
+      Cannot distinguish Alzheimer's from other causes
+
+Only Demographics:
+  Average Accuracy: 0.7659
+  Drop from Baseline: 0.1032 (11.9%)
+
+Only MMSE:
+  Average Accuracy: 0.8690
+  Drop from Baseline: 0.0000 (0.0%)
+
+Only Global Brain:
+  Average Accuracy: 0.8135
+  Drop from Baseline: 0.0556 (6.4%)
+
+======================================================================
+CLINICAL IMPLICATIONS
+======================================================================
+
+1. OVER-RELIANCE ON COGNITIVE TEST (MMSE):
+   - Performance drops 6.0% without MMSE
+   - Models are learning: 'Low MMSE → Dementia'
+   - Problem: MMSE measures cognitive impairment (the outcome)
+   - Cannot detect early Alzheimer's (when MMSE is still normal)
+   - Not adding diagnostic value beyond clinical assessment
+
+2. NON-SPECIFIC GLOBAL BRAIN METRICS:
+   - Performance drops 4.0% without global volumes
+   - Models use total brain size/atrophy (nWBV, eTIV, ASF)
+   - Problem: Many conditions cause global atrophy
+   - Cannot distinguish Alzheimer's from:
+     • Normal aging
+     • Vascular dementia
+     • Frontotemporal dementia
+     • Other neurodegenerative diseases
+
+3. MISSING ALZHEIMER'S-SPECIFIC FEATURES:
+   Current models DO NOT measure:
+   ❌ Hippocampal atrophy (earliest and most specific sign)
+   ❌ Entorhinal cortex atrophy (preclinical marker)
+   ❌ Medial temporal lobe pattern (diagnostic hallmark)
+   ❌ Regional atrophy asymmetry (staging information)
+   ❌ Cortical thickness patterns (early detection)
+
+======================================================================
+CONCLUSION
+======================================================================
+
+Current models achieve high accuracy by:
+1. Predicting cognitive impairment from cognitive tests (circular)
+2. Using non-specific global brain atrophy measures
+
+These models CANNOT be clinically relied upon because:
+❌ Cannot detect early/preclinical Alzheimer's disease
+❌ Cannot distinguish Alzheimer's from other dementias
+❌ Cannot identify Alzheimer's-specific atrophy patterns
+❌ Over-rely on outcome measures rather than causal pathology
+
+RECOMMENDATION:
+✅ Extract regional volumetric features from OASIS MRI images
+✅ Focus on Alzheimer's signature regions:
+   - Hippocampus, entorhinal cortex, medial temporal lobe
+   - Posterior cingulate, precuneus, parietal cortex
+✅ Retrain models with clinically-informed regional features
+✅ Validate against clinical diagnostic criteria
+
+======================================================================
