@@ -37,9 +37,49 @@ const $ = id => document.getElementById(id);
 async function init() {
   await loadPatient();
   setupFeatureTabs();
-  // Wire up both predict buttons
+  
+  // Wire up predict buttons
   $("predict-btn").addEventListener("click", runPrediction);
   $("predict-btn-result").addEventListener("click", runPrediction);
+
+  // Custom dropdown logic
+  const selectContainer = $("patient-select-container");
+  const selectTrigger = $("patient-select-trigger");
+  const hiddenInput = $("patient-select");
+
+  selectTrigger.addEventListener("click", () => {
+    selectContainer.classList.toggle("open");
+  });
+
+  document.querySelectorAll(".cs-option").forEach(opt => {
+    opt.addEventListener("click", async () => {
+      document.querySelectorAll(".cs-option").forEach(o => o.classList.remove("selected"));
+      opt.classList.add("selected");
+      
+      const val = opt.dataset.value;
+      const stat = opt.dataset.status;
+      const statclass = opt.dataset.statclass;
+
+      hiddenInput.value = val;
+      
+      selectTrigger.querySelector(".cs-text").textContent = val;
+      selectTrigger.title = val;
+      const badge = selectTrigger.querySelector(".cs-badge");
+      badge.textContent = stat;
+      badge.className = `cs-badge ${statclass}`;
+
+      selectContainer.classList.remove("open");
+
+      resetResultUI();
+      await loadPatient();
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!selectContainer.contains(e.target)) {
+      selectContainer.classList.remove("open");
+    }
+  });
 }
 
 // ═════════════════════════════════════════════════════
@@ -47,12 +87,15 @@ async function init() {
 // ═════════════════════════════════════════════════════
 async function loadPatient() {
   try {
+    const sessionId = $("patient-select").value;
     // Add cache-buster to ensure fresh data every load
-    const res  = await fetch(`${API}/patient-info?_t=${Date.now()}`);
+    const res  = await fetch(`${API}/patient-info?session_id=${sessionId}&_t=${Date.now()}`);
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     state.patientInfo = data;
     renderPatientCard(data);
+    // Render feature explorer automatically
+    renderFeatureExplorer(data.features || data, state.activeFeatureGroup);
   } catch (e) {
     console.error("Failed to load patient info:", e);
     $("patient-grid").innerHTML = `<div style="color:var(--accent-red);font-size:.8rem;grid-column:1/-1;">
@@ -61,8 +104,6 @@ async function loadPatient() {
 }
 
 function renderPatientCard(d) {
-  $("session-id-badge").textContent = d.session_id;
-
   const fields = [
     { label: "Age",       value: d.age ? `${d.age} yrs` : "—"       },
     { label: "Sex",       value: d.sex || "—"                        },
@@ -93,6 +134,7 @@ function renderPatientCard(d) {
 // ═════════════════════════════════════════════════════
 async function runPrediction() {
   const mode = "full"; // Hardcoded to full feature mode
+  const sessionId = $("patient-select").value;
 
   const btn        = $("predict-btn");
   const btnResult  = $("predict-btn-result");
@@ -100,7 +142,7 @@ async function runPrediction() {
 
   try {
     // Force a fresh POST — no caching on POST, but explicitly prevent any stale reads
-    const res = await fetch(`${API}/predict/${mode}`, {
+    const res = await fetch(`${API}/predict/${mode}?session_id=${sessionId}`, {
       method: "POST",
       headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" },
     });
@@ -120,6 +162,12 @@ async function runPrediction() {
 // ═════════════════════════════════════════════════════
 //  RENDER RESULT
 // ═════════════════════════════════════════════════════
+function resetResultUI() {
+  $("result-placeholder").style.display = "flex";
+  $("result-content").style.display = "none";
+  state.lastResult = null;
+}
+
 function renderResult(r) {
   $("result-placeholder").style.display = "none";
   const rc = $("result-content");

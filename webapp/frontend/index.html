@@ -36,7 +36,34 @@
         <div class="card-header">
           <span class="card-icon">👤</span>
           <h2>Patient Profile</h2>
-          <span class="session-badge" id="session-id-badge">—</span>
+          
+          <div class="custom-select-container" id="patient-select-container">
+            <input type="hidden" id="patient-select" value="OAS1_0003_MR1" />
+            <div class="custom-select-trigger" id="patient-select-trigger" title="OAS1_0003_MR1">
+              <span class="cs-text">OAS1_0003_MR1</span>
+              <span class="cs-badge cs-demented">Demented</span>
+              <svg class="cs-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+            </div>
+            <div class="custom-select-menu" id="patient-select-menu">
+              <div class="cs-option selected" data-value="OAS1_0003_MR1" data-status="Demented" data-statclass="cs-demented">
+                <span class="cs-opt-text">OAS1_0003_MR1</span>
+                <span class="cs-badge cs-demented">Demented</span>
+              </div>
+              <div class="cs-option" data-value="OAS1_0015_MR1" data-status="Demented" data-statclass="cs-demented">
+                <span class="cs-opt-text">OAS1_0015_MR1</span>
+                <span class="cs-badge cs-demented">Demented</span>
+              </div>
+              <div class="cs-option" data-value="OAS1_0001_MR1" data-status="Non-Demented" data-statclass="cs-nondemented">
+                <span class="cs-opt-text">OAS1_0001_MR1</span>
+                <span class="cs-badge cs-nondemented">Non-Demented</span>
+              </div>
+              <div class="cs-option" data-value="OAS1_0002_MR1" data-status="Non-Demented" data-statclass="cs-nondemented">
+                <span class="cs-opt-text">OAS1_0002_MR1</span>
+                <span class="cs-badge cs-nondemented">Non-Demented</span>
+              </div>
+            </div>
+          </div>
+
         </div>
         <div class="patient-grid" id="patient-grid">
           <div class="skeleton-block"></div>

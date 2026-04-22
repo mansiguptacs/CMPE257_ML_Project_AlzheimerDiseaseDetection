@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 ENHANCED_CSV   = PROJECT_ROOT / "data" / "enhanced_features" / "oasis1_full_enhanced_features.csv"
-HARDCODED_SESSION = "OAS1_0003_MR1"   # ← Demented patient, correct across all 3 modes
+DEFAULT_SESSION = "OAS1_0003_MR1"
 
 # Full-feature mode
 MODES = {
@@ -112,12 +112,16 @@ def _preprocess_row(raw_row: pd.Series, mode_key: str) -> pd.DataFrame:
         # Fallback: use full feature names minus Subject_ID
         scaler_cols = [f for f in _cache.feature_names_full if f != "Subject_ID"]
 
-    numeric_row = row.select_dtypes(include=[np.number])
     X_full = pd.DataFrame(0.0, index=[0], columns=scaler_cols)
     for col in scaler_cols:
-        if col in numeric_row.columns:
-            val = numeric_row[col].values[0]
-            X_full[col] = float(val) if not np.isnan(val) else 0.0
+        if col in row.columns:
+            val = row[col].values[0]
+            try:
+                # Convert to float, replacing NaN with 0.0
+                float_val = float(val)
+                X_full[col] = float_val if not np.isnan(float_val) else 0.0
+            except (ValueError, TypeError):
+                X_full[col] = 0.0
 
     # -- Step 2: scale the full vector --
     X_scaled_full = _cache.scaler.transform(X_full)
@@ -144,16 +148,16 @@ def _preprocess_row(raw_row: pd.Series, mode_key: str) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 @app.get("/patient-info")
-def patient_info():
+def patient_info(session_id: str = DEFAULT_SESSION):
     """Return the hardcoded patient's raw clinical data row."""
     df = _cache.df
-    row = df[df["ID"] == HARDCODED_SESSION]
+    row = df[df["ID"] == session_id]
     if row.empty:
-        raise HTTPException(status_code=404, detail=f"Session '{HARDCODED_SESSION}' not found in CSV")
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found in CSV")
 
     r = row.iloc[0]
     clinical = {
-        "session_id": HARDCODED_SESSION,
+        "session_id": session_id,
         "age": _safe_val(r, "Age"),
         "sex": _safe_val(r, "M/F"),
         "education": _safe_val(r, "Educ"),
@@ -176,20 +180,20 @@ def get_modes():
 
 
 @app.post("/predict/{mode_key}")
-def predict(mode_key: str, response: Response):
+def predict(mode_key: str, response: Response, session_id: str = DEFAULT_SESSION):
     # Prevent browser/proxy from caching inference results
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     response.headers["Pragma"] = "no-cache"
-    """Run XGBoost inference for the hardcoded patient in the given ablation mode."""
+    """Run XGBoost inference for the patient."""
     if mode_key not in MODES:
         raise HTTPException(status_code=400, detail=f"Unknown mode '{mode_key}'. Use: {list(MODES.keys())}")
     if mode_key not in _cache.model_cache:
         raise HTTPException(status_code=503, detail=f"Model for mode '{mode_key}' not loaded.")
 
     df = _cache.df
-    row = df[df["ID"] == HARDCODED_SESSION]
+    row = df[df["ID"] == session_id]
     if row.empty:
-        raise HTTPException(status_code=404, detail=f"Session '{HARDCODED_SESSION}' not found")
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
 
     raw_row = row.iloc[0]
     X, feature_names_used = _preprocess_row(raw_row, mode_key)
@@ -222,7 +226,7 @@ def predict(mode_key: str, response: Response):
     fi = _cache.feature_importance_cache.get(mode_key, [])
 
     return {
-        "session_id": HARDCODED_SESSION,
+        "session_id": session_id,
         "mode": mode_key,
         "mode_label": MODES[mode_key]["label"],
         "prediction": pred,
