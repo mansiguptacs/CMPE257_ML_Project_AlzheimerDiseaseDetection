@@ -10,7 +10,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -24,26 +24,14 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 ENHANCED_CSV   = PROJECT_ROOT / "data" / "enhanced_features" / "oasis1_full_enhanced_features.csv"
 HARDCODED_SESSION = "OAS1_0003_MR1"   # ← Demented patient, correct across all 3 modes
 
-# Full-feature ablation mode artefacts
+# Full-feature mode
 MODES = {
     "full": {
         "data_dir":   PROJECT_ROOT / "results" / "phase2" / "data_full",
         "models_dir": PROJECT_ROOT / "results" / "phase2" / "models_full",
         "label": "Full Features (Clinical + Tissue + Regional)",
         "drop_cols": [],
-    },
-    "no_mmse": {
-        "data_dir":   PROJECT_ROOT / "results" / "phase2" / "data_full",   # same scaler; MMSE dropped at runtime
-        "models_dir": PROJECT_ROOT / "results" / "phase2" / "models_no_mmse",
-        "label": "Without MMSE (Clinical Robustness)",
-        "drop_cols": ["MMSE"],
-    },
-    "imaging_only": {
-        "data_dir":   PROJECT_ROOT / "results" / "phase2" / "data_full",   # same scaler base; extra cols dropped
-        "models_dir": PROJECT_ROOT / "results" / "phase2" / "models_imaging_only",
-        "label": "Imaging Features Only (Structural Biomarkers)",
-        "drop_cols": ["MMSE", "nWBV", "eTIV", "ASF", "Delay", "SES"],
-    },
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -108,7 +96,8 @@ def _preprocess_row(raw_row: pd.Series, mode_key: str) -> pd.DataFrame:
       1. Encode M/F categorical column
       2. Align to the scaler's full feature set, scale
       3. Drop ablation-excluded columns after scaling
-      4. Return X aligned to what the ablation model was trained on
+      4. Re-align column order to match the model's exact feature_names_in_
+         (prevents feature-order mismatch between scaler and ablation models)
     """
     row = raw_row.copy().to_frame().T.reset_index(drop=True)
 
@@ -136,10 +125,18 @@ def _preprocess_row(raw_row: pd.Series, mode_key: str) -> pd.DataFrame:
 
     # -- Step 3: drop columns excluded by this ablation mode --
     drop_cols = set(MODES[mode_key]["drop_cols"])
-    features_available = [c for c in scaler_cols if c not in drop_cols]
-    X = X_scaled_df[features_available].copy()
+    features_after_drop = [c for c in scaler_cols if c not in drop_cols]
+    X = X_scaled_df[features_after_drop].copy()
 
-    return X, features_available
+    # -- Step 4: re-align to the model's exact feature order (authoritative) --
+    model = _cache.model_cache.get(mode_key)
+    if model is not None and hasattr(model, "feature_names_in_"):
+        model_feature_names = [str(f) for f in model.feature_names_in_]
+        # Only keep features the model knows about, in its exact order
+        X = X[[c for c in model_feature_names if c in X.columns]]
+        features_after_drop = list(X.columns)
+
+    return X, features_after_drop
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +176,10 @@ def get_modes():
 
 
 @app.post("/predict/{mode_key}")
-def predict(mode_key: str):
+def predict(mode_key: str, response: Response):
+    # Prevent browser/proxy from caching inference results
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
     """Run XGBoost inference for the hardcoded patient in the given ablation mode."""
     if mode_key not in MODES:
         raise HTTPException(status_code=400, detail=f"Unknown mode '{mode_key}'. Use: {list(MODES.keys())}")

@@ -21,11 +21,8 @@ const FEATURE_GROUPS = {
   regional: null   // everything else = regional
 };
 
-// ── State ─────────────────────────────────────────────
 const state = {
   patientInfo: null,
-  modes: [],
-  selectedMode: null,
   lastResult: null,
   fiChart: null,
   activeFeatureGroup: "clinical",
@@ -38,8 +35,11 @@ const $ = id => document.getElementById(id);
 //  INIT
 // ═════════════════════════════════════════════════════
 async function init() {
-  await Promise.all([loadPatient(), loadModes()]);
+  await loadPatient();
   setupFeatureTabs();
+  // Wire up both predict buttons
+  $("predict-btn").addEventListener("click", runPrediction);
+  $("predict-btn-result").addEventListener("click", runPrediction);
 }
 
 // ═════════════════════════════════════════════════════
@@ -47,7 +47,8 @@ async function init() {
 // ═════════════════════════════════════════════════════
 async function loadPatient() {
   try {
-    const res  = await fetch(`${API}/patient-info`);
+    // Add cache-buster to ensure fresh data every load
+    const res  = await fetch(`${API}/patient-info?_t=${Date.now()}`);
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     state.patientInfo = data;
@@ -70,7 +71,7 @@ function renderPatientCard(d) {
     { label: "MMSE",      value: d.mmse ?? "—"                       },
     { label: "eTIV (mm³)",value: d.etiv ? fmtNum(d.etiv, 0) : "—"   },
     { label: "nWBV",      value: d.nwbv ? d.nwbv.toFixed(4) : "—"   },
-    { label: "ASF",       value: d.asf  ? d.asf.toFixed(4) : "—"    },
+    { label: "ASF",       value: d.asf  ? d.asf.toFixed(4)  : "—"   },
   ];
 
   $("patient-grid").innerHTML = fields.map(f => `
@@ -85,55 +86,24 @@ function renderPatientCard(d) {
   gtRow.style.display = "flex";
 }
 
-// ═════════════════════════════════════════════════════
-//  ABLATION MODES
-// ═════════════════════════════════════════════════════
-async function loadModes() {
-  try {
-    const res   = await fetch(`${API}/modes`);
-    const modes = await res.json();
-    state.modes = modes;
-    renderModes(modes);
-    // Select first mode by default
-    selectMode(modes[0].key);
-  } catch (e) {
-    console.error("Failed to load modes:", e);
-  }
-}
 
-function renderModes(modes) {
-  const container = $("mode-options");
-  const icons = { full: "🔬", no_mmse: "🧪", imaging_only: "🗺" };
-  container.innerHTML = modes.map(m => `
-    <div class="mode-option" id="mode-opt-${m.key}" onclick="selectMode('${m.key}')" role="radio" tabindex="0">
-      <div class="mode-radio"></div>
-      <div class="mode-text">${icons[m.key] || "▸"} ${m.label}</div>
-    </div>`).join("");
-}
-
-function selectMode(key) {
-  state.selectedMode = key;
-  document.querySelectorAll(".mode-option").forEach(el => el.classList.remove("selected"));
-  const opt = $(`mode-opt-${key}`);
-  if (opt) opt.classList.add("selected");
-  $("predict-btn").disabled = false;
-}
 
 // ═════════════════════════════════════════════════════
 //  PREDICT
 // ═════════════════════════════════════════════════════
-$("predict-btn").addEventListener("click", runPrediction);
-
 async function runPrediction() {
-  const mode = state.selectedMode;
-  if (!mode) return;
+  const mode = "full"; // Hardcoded to full feature mode
 
-  const btn = $("predict-btn");
-  btn.classList.add("loading");
-  btn.disabled = true;
+  const btn        = $("predict-btn");
+  const btnResult  = $("predict-btn-result");
+  [btn, btnResult].forEach(b => { b.classList.add("loading"); b.disabled = true; });
 
   try {
-    const res = await fetch(`${API}/predict/${mode}`, { method: "POST" });
+    // Force a fresh POST — no caching on POST, but explicitly prevent any stale reads
+    const res = await fetch(`${API}/predict/${mode}`, {
+      method: "POST",
+      headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" },
+    });
     if (!res.ok) throw new Error(await res.text());
     const result = await res.json();
     state.lastResult = result;
@@ -143,8 +113,7 @@ async function runPrediction() {
     console.error("Prediction failed:", e);
     alert(`Prediction error: ${e.message}`);
   } finally {
-    btn.classList.remove("loading");
-    btn.disabled = false;
+    [btn, btnResult].forEach(b => { b.classList.remove("loading"); b.disabled = false; });
   }
 }
 
@@ -154,7 +123,7 @@ async function runPrediction() {
 function renderResult(r) {
   $("result-placeholder").style.display = "none";
   const rc = $("result-content");
-  rc.style.display = "block";
+  rc.style.display = "flex";
 
   // Verdict badge
   const isDemented = r.prediction === 1;
@@ -184,12 +153,10 @@ function renderResult(r) {
 
 // ── Gauge animation ────────────────────────────────────
 function animateGauge(prob) {
-  // Arc length of the semicircle (π * r = π * 80 ≈ 251.2)
   const totalArc = 251.2;
   const offset   = totalArc * (1 - prob);
   $("gauge-arc").style.strokeDashoffset = offset;
 
-  // Needle: -90° → 0° = 0 prob, +90° = 1.0 prob
   const deg = -90 + prob * 180;
   $("gauge-needle").style.transform = `rotate(${deg}deg)`;
 }
@@ -199,7 +166,6 @@ function renderFIChart(fiData) {
   const labels = fiData.map(f => f.feature);
   const values = fiData.map(f => parseFloat(f.importance.toFixed(4)));
 
-  // Colour bars by feature source
   const colors = labels.map(l => {
     if (/hippocampus|ventricle|entorhinal|temporal/.test(l)) return "rgba(124,58,237,0.75)";
     if (/csf_|gm_|wm_|brain_parenchyma|reconstructed|_frac|_ratio|_to_etiv/.test(l)) return "rgba(14,165,233,0.75)";
@@ -218,7 +184,7 @@ function renderFIChart(fiData) {
         backgroundColor: colors,
         borderColor: colors.map(c => c.replace("0.75", "1")),
         borderWidth: 1,
-        borderRadius: 4,
+        borderRadius: 3,
       }]
     },
     options: {
@@ -234,9 +200,6 @@ function renderFIChart(fiData) {
           borderWidth: 1,
           bodyColor: "#0f172a",
           titleColor: "#475569",
-          boxShadowOffsetX: 2,
-          boxShadowOffsetY: 2,
-          boxShadowBlur: 8,
           callbacks: {
             label: ctx => ` ${(ctx.parsed.x * 100).toFixed(2)}%`
           }
@@ -244,13 +207,13 @@ function renderFIChart(fiData) {
       },
       scales: {
         x: {
-          ticks: { color: "#94a3b8", font: { size: 10 } },
+          ticks: { color: "#94a3b8", font: { size: 9 } },
           grid:  { color: "#f1f5f9" },
         },
         y: {
           ticks: {
             color: "#475569",
-            font: { family: "'JetBrains Mono', monospace", size: 10 },
+            font: { family: "'JetBrains Mono', monospace", size: 9 },
             maxTicksLimit: 15,
           },
           grid: { display: false },
@@ -261,13 +224,13 @@ function renderFIChart(fiData) {
 
   // Chart legend
   const legendEl = document.createElement("div");
-  legendEl.style.cssText = "display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:0.66rem;color:#94a3b8;";
+  legendEl.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;font-size:0.62rem;color:#94a3b8;";
   legendEl.innerHTML = [
     ['rgba(59,130,246,0.75)', 'Original Clinical'],
     ['rgba(14,165,233,0.75)', 'Tissue Features'],
     ['rgba(124,58,237,0.75)', 'Regional ROI'],
-  ].map(([c,l]) => `<span style="display:flex;align-items:center;gap:5px;">
-    <span style="width:10px;height:10px;border-radius:2px;background:${c};display:inline-block;"></span>${l}</span>`).join("");
+  ].map(([c,l]) => `<span style="display:flex;align-items:center;gap:4px;">
+    <span style="width:9px;height:9px;border-radius:2px;background:${c};display:inline-block;"></span>${l}</span>`).join("");
 
   const section = document.querySelector(".chart-section");
   const existing = section.querySelector(".chart-legend");
@@ -309,7 +272,7 @@ function renderFeatureExplorer(features, group) {
   }
 
   if (filteredKeys.length === 0) {
-    $("feat-list").innerHTML = `<div style="color:var(--text-muted);font-size:.8rem;padding:12px;">
+    $("feat-list").innerHTML = `<div style="color:var(--text-muted);font-size:.75rem;padding:10px;">
       No features available in this mode for the selected category.</div>`;
     return;
   }
@@ -340,16 +303,12 @@ function fmtNum(n, decimals = 2) {
 function fmtVal(key, val) {
   if (val === null || val === undefined) return "—";
   if (typeof val === "string") return val;
-  // Volume columns → comma-sep integers
   if (/_mm3$|_voxels$/.test(key)) return fmtNum(val, 0);
-  // Fraction / ratio columns
   if (/_frac$|_ratio$|_fraction$|nwbv|_to_etiv$|asym|lateral/.test(key))
     return Number(val).toFixed(4);
-  // General float
   if (Number.isFinite(val)) return Number(val).toLocaleString("en-US", { maximumFractionDigits: 2 });
   return String(val);
 }
 
 // ── Start ─────────────────────────────────────────────
-window.selectMode = selectMode;   // expose for inline onclick
 init();

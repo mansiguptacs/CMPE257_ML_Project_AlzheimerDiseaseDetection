@@ -30,7 +30,7 @@
   <!-- ── MAIN 3-COLUMN GRID ──────────────────────────────────────────── -->
   <main class="main-grid">
 
-    <!-- ══ LEFT — Patient Profile ════════════════════════════════════ -->
+    <!-- ══ LEFT — Patient Profile + Feature Explorer ════════════════ -->
     <aside class="left-col">
       <div class="card patient-card">
         <div class="card-header">
@@ -50,7 +50,7 @@
         </div>
       </div>
 
-      <!-- Feature Explorer — Clinical tab only in left -->
+      <!-- Feature Explorer -->
       <div class="card feat-explorer-card">
         <div class="card-header">
           <span class="card-icon">🔬</span>
@@ -67,22 +67,39 @@
       </div>
     </aside>
 
-    <!-- ══ CENTER — Prediction Result ════════════════════════════════ -->
+    <!-- ══ CENTER — Prediction + Chart + Ablation Controls ══════════ -->
     <section class="center-col">
       <div class="card result-card" id="result-card">
+
+        <!-- Placeholder before inference -->
         <div class="result-placeholder" id="result-placeholder">
           <div class="placeholder-brain">🧠</div>
-          <p>Select an ablation mode and click <strong>Run Inference</strong> to see the prediction.</p>
+          <p>Click <strong>Run Inference</strong> to run the full-feature XGBoost model on this patient's MRI session.</p>
+          <div class="placeholder-mode-section" id="placeholder-mode-section">
+            <button class="predict-btn predict-btn-center" id="predict-btn">
+              <span class="btn-text">Run Inference</span>
+              <span class="btn-spinner" id="btn-spinner"></span>
+            </button>
+          </div>
         </div>
 
+        <!-- Result content after inference -->
         <div class="result-content" id="result-content" style="display:none;">
-          <!-- Verdict -->
-          <div class="verdict-row">
+
+          <!-- Top: Verdict + Mode label + Metrics row -->
+          <div class="result-top-row">
             <div class="verdict-badge" id="verdict-badge">
               <span class="verdict-icon" id="verdict-icon">?</span>
               <span class="verdict-text" id="verdict-text">—</span>
             </div>
             <div class="mode-label-result" id="mode-label-result">—</div>
+            <!-- Inline metrics anchored near result -->
+            <div class="inline-metrics">
+              <div class="im-item"><span class="im-val">90.5%</span><span class="im-label">Accuracy</span></div>
+              <div class="im-item"><span class="im-val">80.0%</span><span class="im-label">F1-Score</span></div>
+              <div class="im-item"><span class="im-val">0.9375</span><span class="im-label">ROC-AUC</span></div>
+              <div class="im-item"><span class="im-val">84</span><span class="im-label">Test Samples</span></div>
+            </div>
           </div>
 
           <!-- Confidence gauge + prob bars -->
@@ -130,33 +147,18 @@
               <canvas id="fi-chart"></canvas>
             </div>
           </div>
-        </div>
+
+          <!-- ── Re-run control ─────────── -->
+          <div class="ablation-footer" style="display:flex; justify-content:flex-end;">
+            <button class="predict-btn predict-btn-inline" id="predict-btn-result">
+              <span class="btn-text">Run Inference Again</span>
+              <span class="btn-spinner" id="btn-spinner-result"></span>
+            </button>
+          </div>
+
+        </div><!-- /result-content -->
       </div>
     </section>
-
-    <!-- ══ RIGHT — Ablation Mode + Run ═══════════════════════════════ -->
-    <aside class="right-col">
-      <div class="card mode-card">
-        <div class="card-header">
-          <span class="card-icon">⚗️</span>
-          <h2>Ablation Mode</h2>
-        </div>
-        <div class="mode-options" id="mode-options"><!-- populated by JS --></div>
-
-        <button class="predict-btn" id="predict-btn" disabled>
-          <span class="btn-text">Run Inference</span>
-          <span class="btn-spinner" id="btn-spinner"></span>
-        </button>
-
-        <!-- Inline model metrics under the button -->
-        <div class="inline-metrics">
-          <div class="im-item"><span class="im-val">90.5%</span><span class="im-label">Accuracy</span></div>
-          <div class="im-item"><span class="im-val">80.0%</span><span class="im-label">F1-Score</span></div>
-          <div class="im-item"><span class="im-val">0.9375</span><span class="im-label">ROC-AUC</span></div>
-          <div class="im-item"><span class="im-val">84</span><span class="im-label">Test Samples</span></div>
-        </div>
-      </div>
-    </aside>
 
   </main>
 
