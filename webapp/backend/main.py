@@ -147,6 +147,10 @@ def _preprocess_row(raw_row: pd.Series, mode_key: str) -> pd.DataFrame:
 # Routes
 # ---------------------------------------------------------------------------
 
+@app.get("/")
+def read_root():
+    return {"message": "NeuroScan AI Backend is running. Please access the web interface at http://localhost:8080"}
+
 @app.get("/patient-info")
 def patient_info(session_id: str = DEFAULT_SESSION):
     """Return the hardcoded patient's raw clinical data row."""
