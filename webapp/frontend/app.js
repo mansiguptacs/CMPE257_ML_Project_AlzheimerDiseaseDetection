@@ -204,7 +204,7 @@ function renderResult(r) {
 
   // Confidence gauge (Phase 2)
   const conf = r.prob_demented;
-  animateGauge(conf);
+  animateGauge("gauge-arc", "gauge-needle", conf);
   $("gauge-val").textContent = `${(conf * 100).toFixed(1)}%`;
 
   // Probability bars (Phase 2)
@@ -227,6 +227,11 @@ function renderResult(r) {
     $("p1-verdict-icon").textContent = isDem1 ? "🔴" : "🟢";
     $("p1-verdict-text").textContent = p1.prediction_label;
     
+    // Phase 1 Confidence gauge
+    const p1Conf = p1.prob_demented;
+    animateGauge("p1-gauge-arc", "p1-gauge-needle", p1Conf);
+    $("p1-gauge-val").textContent = `${(p1Conf * 100).toFixed(1)}%`;
+    
     // Phase 1 Probability bars
     const p1PctND = (p1.prob_non_demented * 100).toFixed(1);
     const p1PctD  = (p1.prob_demented * 100).toFixed(1);
@@ -234,6 +239,7 @@ function renderResult(r) {
     $("p1-prob-d-bar").style.width  = `${p1PctD}%`;
     $("p1-prob-nd-val").textContent = `${p1PctND}%`;
     $("p1-prob-d-val").textContent  = `${p1PctD}%`;
+    $("p1-features-used-note").textContent = `8 features used in this mode`;
     
     renderFIChartP1(p1.feature_importance);
   }
@@ -243,13 +249,13 @@ function renderResult(r) {
 }
 
 // ── Gauge animation ────────────────────────────────────
-function animateGauge(prob) {
+function animateGauge(arcId, needleId, prob) {
   const totalArc = 251.2;
   const offset   = totalArc * (1 - prob);
-  $("gauge-arc").style.strokeDashoffset = offset;
+  $(arcId).style.strokeDashoffset = offset;
 
   const deg = -90 + prob * 180;
-  $("gauge-needle").style.transform = `rotate(${deg}deg)`;
+  $(needleId).style.transform = `rotate(${deg}deg)`;
 }
 
 // ── Feature importance chart ───────────────────────────

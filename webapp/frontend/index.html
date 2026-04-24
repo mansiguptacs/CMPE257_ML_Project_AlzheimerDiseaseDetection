@@ -128,26 +128,54 @@
             <!-- Phase 1 Column -->
             <div style="flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 15px; display: flex; flex-direction: column;">
               <h4 style="margin-top:0; margin-bottom: 12px; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Phase 1 (Clinical Only)</h4>
-              <div class="verdict-badge" id="p1-verdict-badge" style="margin-bottom: 20px; align-self: flex-start;">
+              
+              <div class="verdict-badge" id="p1-verdict-badge" style="margin-bottom: 15px; align-self: flex-start;">
                 <span class="verdict-icon" id="p1-verdict-icon">?</span>
                 <span class="verdict-text" id="p1-verdict-text">—</span>
               </div>
-              <div class="prob-bars" style="margin-top: auto;">
-                <div class="prob-row">
-                  <span class="prob-label">🟢 Non-Demented</span>
-                  <div class="prob-track"><div class="prob-fill nd-fill" id="p1-prob-nd-bar"></div></div>
-                  <span class="prob-pct" id="p1-prob-nd-val">—</span>
+              
+              <div class="gauge-row" style="margin-top: auto; border-top: none; padding-top: 0;">
+                <div class="gauge-wrap" style="transform: scale(0.9); transform-origin: left center; margin-right: 0;">
+                  <svg class="gauge-svg" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="p1GaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#22c55e"/>
+                        <stop offset="50%" style="stop-color:#eab308"/>
+                        <stop offset="100%" style="stop-color:#ef4444"/>
+                      </linearGradient>
+                    </defs>
+                    <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
+                    <path class="gauge-fg" id="p1-gauge-arc" style="stroke: url(#p1GaugeGrad);" d="M 20 100 A 80 80 0 0 1 180 100" />
+                    <g class="gauge-needle" id="p1-gauge-needle" style="transform-origin: 100px 100px;">
+                      <polygon points="96,100 104,100 100,20" fill="#64748b" />
+                      <circle cx="100" cy="100" r="8" fill="#475569" />
+                    </g>
+                  </svg>
+                  <div class="gauge-labels">
+                    <span>0%</span>
+                    <span class="gauge-center-val" id="p1-gauge-val">—</span>
+                    <span>100%</span>
+                  </div>
                 </div>
-                <div class="prob-row">
-                  <span class="prob-label">🔴 Demented</span>
-                  <div class="prob-track"><div class="prob-fill d-fill" id="p1-prob-d-bar"></div></div>
-                  <span class="prob-pct" id="p1-prob-d-val">—</span>
+
+                <div class="prob-bars" style="flex: 1;">
+                  <div class="prob-row">
+                    <span class="prob-label">🟢 Non-Demented</span>
+                    <div class="prob-track"><div class="prob-fill nd-fill" id="p1-prob-nd-bar"></div></div>
+                    <span class="prob-pct" id="p1-prob-nd-val">—</span>
+                  </div>
+                  <div class="prob-row">
+                    <span class="prob-label">🔴 Demented</span>
+                    <div class="prob-track"><div class="prob-fill d-fill" id="p1-prob-d-bar"></div></div>
+                    <span class="prob-pct" id="p1-prob-d-val">—</span>
+                  </div>
+                  <div class="features-used-note" id="p1-features-used-note" style="text-align: right; margin-top: 8px;">— features used</div>
                 </div>
               </div>
             </div>
 
             <!-- Phase 2 Column -->
-            <div style="flex: 1.5; border: 1px solid #c7d2fe; border-radius: 8px; padding: 15px; background: rgba(99,102,241,0.03); display: flex; flex-direction: column;">
+            <div style="flex: 1; border: 1px solid #c7d2fe; border-radius: 8px; padding: 15px; background: rgba(99,102,241,0.03); display: flex; flex-direction: column;">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                 <h4 style="margin-top:0; margin-bottom: 0; color: var(--accent-indigo); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Phase 2 (Enhanced)</h4>
                 <div class="mode-label-result" id="mode-label-result" style="margin-bottom: 0;">—</div>
@@ -169,9 +197,11 @@
                       </linearGradient>
                     </defs>
                     <path class="gauge-bg" d="M 20 100 A 80 80 0 0 1 180 100" />
-                    <path class="gauge-fg" id="gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100" />
-                    <line class="gauge-needle" id="gauge-needle" x1="100" y1="100" x2="100" y2="28" />
-                    <circle cx="100" cy="100" r="5" fill="#64748b" opacity="0.9"/>
+                    <path class="gauge-fg" id="gauge-arc" style="stroke: url(#gaugeGrad);" d="M 20 100 A 80 80 0 0 1 180 100" />
+                    <g class="gauge-needle" id="gauge-needle" style="transform-origin: 100px 100px;">
+                      <polygon points="96,100 104,100 100,20" fill="#64748b" />
+                      <circle cx="100" cy="100" r="8" fill="#475569" />
+                    </g>
                   </svg>
                   <div class="gauge-labels">
                     <span>0%</span>
@@ -244,44 +274,62 @@
   <div class="view-container" id="view-eda" style="display: none;">
   <!-- ── VISUALIZATIONS ────────────────────────────────────────────────── -->
   <section class="viz-section">
-    <h2>Exploratory Data Analysis</h2>
-    <p class="viz-subtitle">Insights from the OASIS-1 Dataset and Phase 1 Baseline Models</p>
+    <h2>Exploratory Data Analysis & Model Evaluation</h2>
+    <p class="viz-subtitle">Deep dive into the OASIS-1 Dataset, feature relationships, and Phase 1 vs Phase 2 modeling results.</p>
+    
     <div class="viz-grid">
       <div class="viz-card">
+        <h3 class="viz-card-title" style="margin-bottom:4px; font-size:1.1rem; color:var(--accent-indigo);">Class Distribution</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Shows the dataset balance between Demented and Non-Demented patient scans.</p>
         <img src="figures/class_distribution.png" alt="Class Distribution" />
-        <div class="viz-card-title">Class Distribution</div>
       </div>
+      
       <div class="viz-card">
+        <h3 class="viz-card-title" style="margin-bottom:4px; font-size:1.1rem; color:var(--accent-indigo);">Missing Values by Feature</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Highlights variables requiring imputation, primarily Socioeconomic Status (SES).</p>
         <img src="figures/missing_values.png" alt="Missing Values" />
-        <div class="viz-card-title">Missing Values by Feature</div>
       </div>
+      
       <div class="viz-card">
+        <h3 class="viz-card-title" style="margin-bottom:4px; font-size:1.1rem; color:var(--accent-indigo);">Feature Distributions</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Visualizes clinical feature overlaps and separations between patient groups.</p>
         <img src="figures/feature_distributions.png" alt="Feature Distributions" />
-        <div class="viz-card-title">Feature Distributions: Healthy vs Dementia</div>
       </div>
+      
       <div class="viz-card">
+        <h3 class="viz-card-title" style="margin-bottom:4px; font-size:1.1rem; color:var(--accent-indigo);">Feature Correlation Matrix</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Maps statistical relationships, revealing strong ties between MMSE and CDR.</p>
         <img src="figures/correlation_heatmap.png" alt="Correlation Heatmap" />
-        <div class="viz-card-title">Feature Correlation Matrix</div>
       </div>
+      
       <div class="viz-card">
+        <h3 class="viz-card-title" style="margin-bottom:4px; font-size:1.1rem; color:var(--accent-indigo);">Key Indicators by CDR Group</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Demonstrates how MMSE drops and brain volume shrinks as Dementia progresses.</p>
         <img src="figures/mmse_nwbv_vs_cdr.png" alt="MMSE and nWBV vs CDR" />
-        <div class="viz-card-title">Key Indicators by CDR Group</div>
       </div>
+      
       <div class="viz-card">
+        <h3 class="viz-card-title" style="margin-bottom:4px; font-size:1.1rem; color:var(--accent-indigo);">Age Demographics</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Shows age distributions, emphasizing Alzheimer's prevalence in older patients.</p>
         <img src="figures/age_distribution.png" alt="Age Distribution" />
-        <div class="viz-card-title">Age Distribution by Dementia Status</div>
       </div>
+      
       <div class="viz-card">
+        <h3 class="viz-card-title" style="margin-bottom:4px; font-size:1.1rem; color:var(--accent-indigo);">Phase 1 Baseline Accuracy</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Compares clinical-only models, showing XGBoost and Random Forest superiority.</p>
         <img src="figures/model_accuracy_comparison.png" alt="Phase 1 Model Accuracy Comparison" />
-        <div class="viz-card-title">Phase 1 Baseline Accuracy Comparison</div>
       </div>
+      
       <div class="viz-card">
+        <h3 class="viz-card-title" style="margin-bottom:4px; font-size:1.1rem; color:var(--accent-indigo);">Feature Ablation Study</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Proves that adding tissue and regional MRI features massively improves accuracy.</p>
         <img src="figures/ablation_summary.png" alt="Ablation Summary" />
-        <div class="viz-card-title">Feature Ablation Study (Phase 2)</div>
       </div>
-      <div class="viz-card" style="grid-column: 1 / -1; max-width: 800px; margin: 0 auto;">
+      
+      <div class="viz-card" style="grid-column: 1 / -1; max-width: 900px; margin: 0 auto;">
+        <h3 class="viz-card-title" style="margin-bottom:4px; font-size:1.1rem; color:var(--accent-indigo);">Feature Importance Across Models</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; text-align:center;">Detailed breakdown of exactly which clinical variables the trees rely on most.</p>
         <img src="figures/feature_importance_comparison.png" alt="Feature Importance Comparison" />
-        <div class="viz-card-title">Feature Importance Across Models</div>
       </div>
     </div>
   </section>
@@ -294,6 +342,6 @@
     · Jainil Rana · Mansi Gupta · Mohit Barade
   </footer>
 
-  <script src="app.js?v=2.2"></script>
+  <script src="app.js?v=2.3"></script>
 </body>
 </html>
