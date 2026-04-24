@@ -83,6 +83,20 @@ def startup():
         if fi_path.exists():
             _cache.feature_importance_cache[mode_key] = pd.read_csv(fi_path).to_dict(orient="records")
 
+    # Load Phase 1 Model
+    phase1_model_path = PROJECT_ROOT / "models" / "phase1_oasis1" / "xgboost_model.pkl"
+    if phase1_model_path.exists():
+        _cache.model_cache["phase1"] = joblib.load(phase1_model_path)
+        logger.info(f"  → Loaded Phase 1 XGBoost from {phase1_model_path}")
+    
+    phase1_fi_path = PROJECT_ROOT / "models" / "phase1_oasis1" / "xgboost_feature_importance.csv"
+    if phase1_fi_path.exists():
+        _cache.feature_importance_cache["phase1"] = pd.read_csv(phase1_fi_path).to_dict(orient="records")
+
+    phase1_scaler_path = PROJECT_ROOT / "data" / "processed" / "oasis1" / "scaler.pkl"
+    if phase1_scaler_path.exists():
+        _cache.scaler_p1 = joblib.load(phase1_scaler_path)
+
     logger.info("Startup complete.")
 
 
@@ -229,6 +243,53 @@ def predict(mode_key: str, response: Response, session_id: str = DEFAULT_SESSION
     # Feature importance for this mode
     fi = _cache.feature_importance_cache.get(mode_key, [])
 
+    # Run Phase 1 Model for comparison if available
+    phase1_results = {}
+    if "phase1" in _cache.model_cache and getattr(_cache, "scaler_p1", None):
+        model_p1 = _cache.model_cache["phase1"]
+        scaler_p1 = _cache.scaler_p1
+        
+        # Scale continuous features using Phase 1 scaler
+        scaler_cols = ['Age', 'Educ', 'SES', 'MMSE', 'eTIV', 'nWBV', 'ASF', 'Delay']
+        X_scale = pd.DataFrame(0.0, index=[0], columns=scaler_cols)
+        for c in scaler_cols:
+            val = raw_row.get(c)
+            try:
+                fval = float(val)
+                X_scale[c] = fval if not np.isnan(fval) else 0.0
+            except (ValueError, TypeError):
+                X_scale[c] = 0.0
+                
+        X_scaled_arr = scaler_p1.transform(X_scale)
+        X_scaled_df = pd.DataFrame(X_scaled_arr, columns=scaler_cols)
+        
+        # Construct final Phase 1 features: ['M/F', 'Age', 'Educ', 'SES', 'MMSE', 'eTIV', 'nWBV', 'ASF']
+        p1_feats = ['M/F', 'Age', 'Educ', 'SES', 'MMSE', 'eTIV', 'nWBV', 'ASF']
+        X_p1 = pd.DataFrame(0.0, index=[0], columns=p1_feats)
+        for c in p1_feats:
+            if c == 'M/F':
+                val = raw_row.get(c)
+                if pd.isna(val): X_p1[c] = 0.0
+                else: X_p1[c] = 1.0 if str(val).upper() == 'M' else 0.0
+            else:
+                X_p1[c] = X_scaled_df[c]
+        
+        try:
+            proba_p1 = model_p1.predict_proba(X_p1)[0]
+            pred_p1 = int(np.argmax(proba_p1))
+            prob_demented_p1 = float(proba_p1[1]) if len(proba_p1) > 1 else float(proba_p1[0])
+            prob_non_demented_p1 = float(proba_p1[0]) if len(proba_p1) > 1 else 1 - float(proba_p1[0])
+            fi_p1 = _cache.feature_importance_cache.get("phase1", [])
+            phase1_results = {
+                "prediction": pred_p1,
+                "prediction_label": "Demented" if pred_p1 == 1 else "Non-Demented",
+                "prob_demented": prob_demented_p1,
+                "prob_non_demented": prob_non_demented_p1,
+                "feature_importance": fi_p1[:5]
+            }
+        except Exception as e:
+            logger.error(f"Phase 1 prediction failed: {e}")
+
     return {
         "session_id": session_id,
         "mode": mode_key,
@@ -240,7 +301,8 @@ def predict(mode_key: str, response: Response, session_id: str = DEFAULT_SESSION
         "prob_non_demented": float(proba[0]) if len(proba) > 1 else 1 - float(proba[0]),
         "num_features_used": len(feature_names_used),
         "features": raw_vals,
-        "feature_importance": fi[:20],   # top 20
+        "feature_importance": fi[:15],   # top 15
+        "phase1_results": phase1_results, # added for comparison
     }
 
 

@@ -25,6 +25,7 @@ const state = {
   patientInfo: null,
   lastResult: null,
   fiChart: null,
+  fiChartP1: null,
   activeFeatureGroup: "clinical",
 };
 
@@ -41,6 +42,10 @@ async function init() {
   // Wire up predict buttons
   $("predict-btn").addEventListener("click", runPrediction);
   $("predict-btn-result").addEventListener("click", runPrediction);
+
+  // Tab switching logic
+  $("tab-inference").addEventListener("click", () => switchTab("inference"));
+  $("tab-eda").addEventListener("click", () => switchTab("eda"));
 
   // Custom dropdown logic
   const selectContainer = $("patient-select-container");
@@ -80,6 +85,22 @@ async function init() {
       selectContainer.classList.remove("open");
     }
   });
+}
+
+function switchTab(tab) {
+  if (tab === "inference") {
+    $("tab-inference").classList.add("active");
+    $("tab-eda").classList.remove("active");
+    $("view-inference").style.display = "block";
+    $("view-eda").style.display = "none";
+    document.body.style.overflowY = "hidden"; // Inference is a single viewport
+  } else {
+    $("tab-eda").classList.add("active");
+    $("tab-inference").classList.remove("active");
+    $("view-eda").style.display = "block";
+    $("view-inference").style.display = "none";
+    document.body.style.overflowY = "auto"; // EDA needs scrolling
+  }
 }
 
 // ═════════════════════════════════════════════════════
@@ -173,7 +194,7 @@ function renderResult(r) {
   const rc = $("result-content");
   rc.style.display = "flex";
 
-  // Verdict badge
+  // Verdict badge (Phase 2)
   const isDemented = r.prediction === 1;
   const badge      = $("verdict-badge");
   badge.className  = `verdict-badge ${isDemented ? "demented" : "non-demented"}`;
@@ -181,12 +202,12 @@ function renderResult(r) {
   $("verdict-text").textContent = r.prediction_label;
   $("mode-label-result").textContent = r.mode_label;
 
-  // Confidence gauge
+  // Confidence gauge (Phase 2)
   const conf = r.prob_demented;
   animateGauge(conf);
   $("gauge-val").textContent = `${(conf * 100).toFixed(1)}%`;
 
-  // Probability bars
+  // Probability bars (Phase 2)
   const pctND = (r.prob_non_demented * 100).toFixed(1);
   const pctD  = (r.prob_demented     * 100).toFixed(1);
   $("prob-nd-bar").style.width = `${pctND}%`;
@@ -195,7 +216,29 @@ function renderResult(r) {
   $("prob-d-val").textContent  = `${pctD}%`;
   $("features-used-note").textContent = `${r.num_features_used} features used in this mode`;
 
-  // Feature importance chart
+  // Phase 1 Comparison Box
+  if (r.phase1_results && Object.keys(r.phase1_results).length > 0) {
+    const p1 = r.phase1_results;
+    const isDem1 = p1.prediction === 1;
+    
+    // Phase 1 Verdict
+    const p1Badge = $("p1-verdict-badge");
+    p1Badge.className = `verdict-badge ${isDem1 ? "demented" : "non-demented"}`;
+    $("p1-verdict-icon").textContent = isDem1 ? "🔴" : "🟢";
+    $("p1-verdict-text").textContent = p1.prediction_label;
+    
+    // Phase 1 Probability bars
+    const p1PctND = (p1.prob_non_demented * 100).toFixed(1);
+    const p1PctD  = (p1.prob_demented * 100).toFixed(1);
+    $("p1-prob-nd-bar").style.width = `${p1PctND}%`;
+    $("p1-prob-d-bar").style.width  = `${p1PctD}%`;
+    $("p1-prob-nd-val").textContent = `${p1PctND}%`;
+    $("p1-prob-d-val").textContent  = `${p1PctD}%`;
+    
+    renderFIChartP1(p1.feature_importance);
+  }
+
+  // Feature importance chart (Phase 2)
   renderFIChart(r.feature_importance.slice(0, 15));
 }
 
@@ -285,6 +328,64 @@ function renderFIChart(fiData) {
   if (existing) existing.remove();
   legendEl.className = "chart-legend";
   section.appendChild(legendEl);
+}
+
+// ── Phase 1 Feature importance chart ───────────────────
+function renderFIChartP1(fiData) {
+  if (!fiData || fiData.length === 0) return;
+  const labels = fiData.map(f => f.feature);
+  const values = fiData.map(f => parseFloat(f.importance.toFixed(4)));
+
+  const colors = labels.map(l => "rgba(59,130,246,0.75)"); // Phase 1 is all clinical
+
+  if (state.fiChartP1) state.fiChartP1.destroy();
+
+  state.fiChartP1 = new Chart($("fi-chart-p1"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Importance",
+        data: values,
+        backgroundColor: colors,
+        borderColor: colors.map(c => c.replace("0.75", "1")),
+        borderWidth: 1,
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 700, easing: "easeOutQuart" },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#ffffff",
+          borderColor: "#e2e8f0",
+          borderWidth: 1,
+          bodyColor: "#0f172a",
+          titleColor: "#475569",
+          callbacks: {
+            label: ctx => ` ${(ctx.parsed.x * 100).toFixed(2)}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: "#94a3b8", font: { size: 9 }, maxTicksLimit: 5 },
+          grid:  { color: "#f1f5f9" },
+        },
+        y: {
+          ticks: {
+            color: "#475569",
+            font: { family: "'JetBrains Mono', monospace", size: 9 },
+          },
+          grid: { display: false },
+        }
+      }
+    }
+  });
 }
 
 // ═════════════════════════════════════════════════════
