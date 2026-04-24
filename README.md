@@ -1,7 +1,7 @@
 # Alzheimer's Disease Detection from Brain MRI Data
 
 **By:** Jainil Rana, Mansi Gupta, Mohit Barade  
-**Course:** CMPE-255 Machine Learning  
+**Course:** CMPE-257 Machine Learning by Prof. Zara Hajihashemi
 
 ---
 
